@@ -27,4 +27,4 @@ async def lemmatization(data: CData):
 # *******************************************************************************************************
 @router.post("/stemming")
 async def stemming(data: CData):
-    return CServiceTextUtils.stemming_porter(data.text)
+    return await CServiceTextUtils.stemming_porter(data.text)
