@@ -145,14 +145,16 @@ morph = pymorphy2.MorphAnalyzer()
 # @param str - входная строка.                                                                          *
 # @return строка без вспомогательных символов.                                                          *
 # *******************************************************************************************************
-def filter_symbols(text):
-    text = re.sub(r"[\.!,:=\\//[]{}()+-<!;?(<)>«»—""%#@&'']", "", text)
+async def filter_symbols(text):
+    text = re.sub(r"[.!,:=\\//[]{}()+-<!;?(<)>—""%#@&'']", "", text)
+    text = re.sub(r"[«]", "", text)
+    text = re.sub(r"[»]", "", text)
     text = re.sub(r"[<>[=/_—]", "", text)
     text = re.sub(r"[-.:')!,]", "", text)
     text = re.sub(r"[%;?&(-]", "", text)
     text = re.sub(r"[1234567890]", "",text)
     text = re.sub(r"[\"]", "", text)
-    text = re.sub(r"[qwertyuiopasdfghjklzxcvbnm]", "", text) #Удаляет весь английский
+    text = re.sub(r"[qwertyuiopasdfghjklzxcvbnm]", "", text)  #Удаляет весь английский
     text = re.sub(r'\s+', ' ', text)  # Удаляет лишние пробелы появившиеся после удаления символов и цифр
     return text
 
@@ -176,9 +178,10 @@ def filter_symbols(text):
 # @param text - исходный текст.                                                                         *
 # @return обработанный текст.                                                                           *
 # *******************************************************************************************************
-def text_processing_porter(text):
+async def stemming_porter(text):
     text = text.lower()
-    text = filter_symbols(text)  # Удаление символов,ангийского, приведение к нижнему регистру
+    text = await filter_symbols(text)  # Удаление символов,ангийского, приведение к нижнему регистру
+
     words = text.split(' ')
     words = list(map(lambda word: stem(word), words))  # Прохождение стеммером Портера
     words = list(filter(lambda word: len(word) > 3, words))  # Удаление всего, что короче 2 символов
@@ -193,9 +196,9 @@ def text_processing_porter(text):
 # @param text - исходный текст.                                                                         *
 # @return обработанный текст.                                                                           *
 # *******************************************************************************************************
-def text_processing_lemmatization(text):
+async def lemmatization(text):
     text = text.lower()
-    text = filter_symbols(text)  # Удаление символов,ангийского, приведение к нижнему регистру
+    text = await filter_symbols(text)  # Удаление символов,ангийского, приведение к нижнему регистру
     words = text.split(' ')
     words = list(map(lambda word: morph.parse(word)[0].normal_form, words))  # Лемматизация текста
     words = list(filter(lambda word: len(word) > 3, words))  # Удаление всего, что короче 3 символов

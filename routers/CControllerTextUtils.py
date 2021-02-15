@@ -1,31 +1,30 @@
-from flask import request
-from flask_restplus import Resource, Namespace, fields
-from services.CServiceTextTools import text_processing_lemmatization, text_processing_porter
+from fastapi import APIRouter
+from services import CServiceTextUtils
+
+from pydantic import BaseModel
+
+router = APIRouter()
+
+
 # *******************************************************************************************************
 # Контроллер содержит обработку запросов на текстовые операции.                                         *
 # @author Селетков И.П. 2019 1118.                                                                      *
 # *******************************************************************************************************
-
-ns_text_tools = Namespace('text tools', description='Text clearing tools')
+class CData(BaseModel):
+    text: str
 
 
 # *******************************************************************************************************
 # Выполнение лемматизации.                                                                              *
 # *******************************************************************************************************
-@ns_text_tools.route('/lemmatization')
-@ns_text_tools.response(404, 'not found.')
-class CTextLemmatization(Resource):
-    def post(self):
-        text = request.data.decode("utf-8")
-        return text_processing_lemmatization(text)
+@router.post("/lemmatization")
+async def lemmatization(data: CData):
+    return await CServiceTextUtils.lemmatization(data.text)
 
 
 # *******************************************************************************************************
 # Выполнение стемминга.                                                                                 *
 # *******************************************************************************************************
-@ns_text_tools.route('/stem')
-@ns_text_tools.response(404, 'not found.')
-class CTextStemming(Resource):
-    def post(self):
-        text = request.data.decode("utf-8")
-        return text_processing_porter(text)
+@router.post("/stemming")
+async def stemming(data: CData):
+    return CServiceTextUtils.stemming_porter(data.text)
