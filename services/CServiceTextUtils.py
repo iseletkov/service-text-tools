@@ -2,6 +2,8 @@
 from services.CServicePorter import stem
 import re
 import pymorphy2
+from nltk.tokenize import word_tokenize
+from nltk.tokenize import sent_tokenize
 
 # *******************************************************************************************************
 # Файл содержит реализацию текстовых операций.                                                          *
@@ -173,22 +175,68 @@ async def filter_symbols(text):
 #     return dictionary
 
 
+def clear_text_sync(text):
+    # split into words
+    tokens = word_tokenize(text)
+    # convert to lower case
+    tokens = [w.lower() for w in tokens]
+    import string
+    table = str.maketrans('', '', string.punctuation)
+    stripped = [w.translate(table) for w in tokens]
+    # remove remaining tokens that are not alphabetic
+    words = [word for word in stripped if word.isalpha()]
+    # filter out stop words
+    from nltk.corpus import stopwords
+    stop_words = set(stopwords.words('russian'))
+    words = [w for w in words if w not in stop_words]
+    return words
+
+
+async def clear_text(text):
+    return clear_text_sync(text)
+
+
 # *******************************************************************************************************
 # Чистка текста с помощью метода Портера.                                                               *
 # @param text - исходный текст.                                                                         *
 # @return обработанный текст.                                                                           *
 # *******************************************************************************************************
-async def stemming_porter(text):
-    text = text.lower()
-    text = await filter_symbols(text)  # Удаление символов,ангийского, приведение к нижнему регистру
-
-    words = text.split(' ')
+def tokenize_stem_sync(text):
+    words = clear_text_sync(text)
     words = list(map(lambda word: stem(word), words))  # Прохождение стеммером Портера
     words = list(filter(lambda word: len(word) > 3, words))  # Удаление всего, что короче 2 символов
     words = list(filter(lambda word: word not in auxiliary_words_porter, words))  # Удаление частиц, предлогов и тп
-#    text = filter_auxiliary_words(text)  # Удаление частиц, предлогов и тп
+    return words
 
+
+async def tokenize_stem(text):
+    return tokenize_stem_sync(text)
+
+
+async def text_stem_sync(text):
+    words = tokenize_stem_sync(text)
     return " ".join(words)
+
+
+# *******************************************************************************************************
+# Чистка текста с помощью метода Портера.                                                               *
+# @param text - исходный текст.                                                                         *
+# @return обработанный текст.                                                                           *
+# *******************************************************************************************************
+async def text_stem(text):
+    words = await tokenize_stem(text)
+    return " ".join(words)
+
+
+async def stemming_sentences(text):
+    text = re.sub(r"\n+", ".", text)
+    text = re.sub(r'\.+', ".", text)
+    text = re.sub(r'(?<=[.,])(?=[^\s])', r' ', text)
+    sents = sent_tokenize(text)
+    sents = [await text_stem(sent) for sent in sents]
+    sents = list(filter(lambda sent: len(sent) > 3, sents))  # Удаление всего, что короче 2 символов
+    sents = list(filter(lambda sent: sent.count(" ") > 2, sents))  # Удаление всего, что короче 2 символов
+    return sents
 
 
 # *******************************************************************************************************
@@ -196,13 +244,9 @@ async def stemming_porter(text):
 # @param text - исходный текст.                                                                         *
 # @return обработанный текст.                                                                           *
 # *******************************************************************************************************
-async def lemmatization(text):
-    text = text.lower()
-    text = await filter_symbols(text)  # Удаление символов,ангийского, приведение к нижнему регистру
-    words = text.split(' ')
+async def text_lemmatization(text):
+    words = await clear_text(text)
     words = list(map(lambda word: morph.parse(word)[0].normal_form, words))  # Лемматизация текста
     words = list(filter(lambda word: len(word) > 3, words))  # Удаление всего, что короче 3 символов
-
-    # words = filter_auxiliary_words(words)  # Удаление частиц, предлогов и тп
 
     return " ".join(words)
