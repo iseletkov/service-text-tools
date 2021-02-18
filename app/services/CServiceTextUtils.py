@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-from services.CServicePorter import stem
+from app.services.CServicePorter import stem
 import re
 import pymorphy2
 from nltk.tokenize import word_tokenize
@@ -229,7 +229,7 @@ async def text_stem(text):
 
 
 async def stemming_sentences(text):
-    text = re.sub(r"\n+", ".", text)
+    text = re.sub(r"\n", ".", text)
     text = re.sub(r'\.+', ".", text)
     text = re.sub(r'(?<=[.,])(?=[^\s])', r' ', text)
     sents = sent_tokenize(text)

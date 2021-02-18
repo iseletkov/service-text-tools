@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from routers import CControllerTextUtils
+from app.routers import CControllerTextUtils
 
 app = FastAPI()
 app.include_router(CControllerTextUtils.router)

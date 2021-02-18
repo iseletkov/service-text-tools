@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from services import CServiceTextUtils
-from services import CServiceSimularity
+from app.services import CServiceTextUtils
+from app.services import CServiceSimularity
 
 from pydantic import BaseModel
 

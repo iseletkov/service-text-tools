@@ -1,7 +1,6 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.tokenize import sent_tokenize
-from services.CServiceTextUtils import text_stem_sync
-from pydantic import BaseModel
+from app.services.CServiceTextUtils import text_stem_sync
 
 
 # *******************************************************************************************************
