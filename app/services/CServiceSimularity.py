@@ -53,7 +53,7 @@ async def similarity_cleared(sents1, sents2):
             sent2 = "".join(sents2[j])
             tfidf = vectorizer.transform([sent1, sent2])
             tfidf = (tfidf * tfidf.T).A[0, 1]
-            if tfidf > 0.2:
+            if tfidf >= 70:
                 arr.append(CResult(tfidf, i, sent1, j, sent2))
     return arr
 
