@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from typing import Optional
 from app.services import CServiceTextUtils
 from app.services import CServiceSimularity
 
@@ -70,5 +71,8 @@ async def simularity(data: CTextPair):
 # Выполнение сравнения двух предварительно подготовленных текстов.                                      *
 # *******************************************************************************************************
 @router.post("/simularity_cleared")
-async def simularity_cleared(data: CTextPairArrays):
-    return await CServiceSimularity.similarity_cleared(data.text1, data.text2)
+async def simularity_cleared(
+        data: CTextPairArrays,
+        threshold: Optional[float] = 0.7
+):
+    return await CServiceSimularity.similarity_cleared(data.text1, data.text2, threshold)

@@ -2,17 +2,16 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.tokenize import sent_tokenize
 from app.services.CServiceTextUtils import text_stem_sync
 from joblib import Parallel, delayed
+from scipy.spatial import distance
 # *******************************************************************************************************
 # Класс содержит методы для проверки похожести текстов.                                                 *
 # @author Селетков И.П. 2021 0216.                                                                      *
 # *******************************************************************************************************
 
 class CResult:
-    def __init__(self, simularity, num1, sent1, num2, sent2):
+    def __init__(self, simularity, sent1, sent2):
         self.k = simularity
-        self.n1 = num1
         self.s1 = sent1
-        self.n2 = num2
         self.s2 = sent2
 
 
@@ -33,12 +32,9 @@ async def similarity(text1, text2):
     return await similarity_cleared(sents1, sents2)
 
 
-def join_sent(sent):
-    return "".join(sent)
+def treat_sent(sent, vectorizer, dict1):
+    dict1["".join(sent)] = vectorizer.transform([sent]).toarray()
 
-
-def join_sent_num(sent, i):
-    return [join_sent(sent), i]
 
 # ***************************************************************************************************
 # Расчёт похожести двух текстов по косинусной метрике.                                              *
@@ -47,53 +43,46 @@ def join_sent_num(sent, i):
 # @param sents2 - входной текст в виде массива предобработанных предложений.                        *
 # @return степень похожести текстов.                                                                *
 # ***************************************************************************************************
-async def similarity_cleared(sents1, sents2):
-    threshold = 0.7
+async def similarity_cleared(sents1, sents2, threshold=0.7):
+    dict1 = dict()
+    dict2 = dict()
+
     vectorizer = TfidfVectorizer()
     vectorizer.fit(sents1 + sents2)
 
-    sents1 = Parallel(n_jobs=-1, require='sharedmem')(
-        delayed(join_sent)(sent)
+    Parallel(n_jobs=-1, require='sharedmem')(
+        delayed(treat_sent)(sent, vectorizer, dict1)
         for sent in sents1
     )
-    sents2 = Parallel(n_jobs=-1, require='sharedmem')(
-        delayed(join_sent)(sent)
+    Parallel(n_jobs=-1, require='sharedmem')(
+        delayed(treat_sent)(sent, vectorizer, dict2)
         for sent in sents2
     )
-    sentsn2 = Parallel(n_jobs=-1, require='sharedmem')(
-        delayed(join_sent_num)(sent, i)
-        for i, sent in enumerate(sents2, start=0)
-    )
+    sentsn2 = dict2.copy()
 
-    len1 = len(sents1)
-    len2 = len(sents2)
-
-    arr = [[0] * len2 for _ in range(len1)]
+    ret = dict()
 
     Parallel(n_jobs=-1, require='sharedmem')(
          delayed(check_sentence)
-         (sent, i, sentsn2, vectorizer, arr, threshold)
-         for i, sent in enumerate(sents1, start=0)
+         (sent, dict1, sentsn2, ret, threshold)
+         for sent in dict1.keys()
     )
 
-    ret = []
-    for i in range(len1):
-        for j in range(len2):
-            if arr[i][j] >= threshold:
-                ret.append(CResult(arr[i][j], i, sents1[i], j, sents2[j]))
-
-    return ret
+    return list(ret.values())
 
 
-def check_sentence(sent1, i, sentsn2, vectorizer, arr, threshold):
-    for sent2 in sentsn2:
-        simularity_sentences(sent1, i, sent2[0], sent2[1], vectorizer, arr)
-        if arr[i][sent2[1]] >= threshold:
-            sentsn2.remove(sent2)
+def check_sentence(sent1, dict1, sentsn2, ret, threshold):
+    for sent2 in list(sentsn2.keys()):
+        if sent2 not in sentsn2:
+            continue
+        simularity_sentences(sent1, dict1, sent2, sentsn2, ret, threshold)
+        if (sent1+sent2) in ret:
+            sentsn2.pop(sent2, None)
             break
-    return arr
 
 
-def simularity_sentences(sent1, i, sent2, j, vectorizer, arr):
-    tfidf = vectorizer.transform([sent1, sent2])
-    arr[i][j] = (tfidf * tfidf.T).A[0, 1]
+def simularity_sentences(sent1, dict1, sent2, sentsn2, ret, threshold):
+    dist = 1-distance.cosine(dict1[sent1], sentsn2[sent2])
+    if dist >= threshold:
+        ret[sent1+sent2] = CResult(dist, sent1, sent2)
+
