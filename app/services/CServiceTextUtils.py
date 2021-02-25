@@ -1,10 +1,11 @@
 # -*- coding: utf8 -*-
-from app.services.CServicePorter import stem
+
 import re
 import pymorphy2
 from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
-
+from app.services.CServicePorter import stem
+from app.model.CModel import CDTOParagraph, CDTOTextIndexed
 # *******************************************************************************************************
 # Файл содержит реализацию текстовых операций.                                                          *
 # @author @kocter. 2019 1003.                                                                           *
@@ -237,6 +238,18 @@ async def stemming_sentences(text):
     sents = list(filter(lambda sent: len(sent) > 3, sents))  # Удаление всего, что короче 2 символов
     sents = list(filter(lambda sent: sent.count(" ") > 2, sents))  # Удаление всего, что короче 2 символов
     return sents
+
+
+async def stemming_sentences_par(par):
+    sents = await stemming_sentences(par.text)
+    return [CDTOParagraph(n=par.n, text=sent) for sent in sents]
+
+
+async def stemming_sentences_indexed(dto_text: CDTOTextIndexed):
+    dto_text.pars = [await stemming_sentences_par(par) for par in dto_text.pars]
+    dto_text.pars = list(filter(lambda par: len(par) > 0, dto_text.pars))
+    dto_text.pars = [par for arr in dto_text.pars for par in arr]
+    return dto_text
 
 
 # *******************************************************************************************************
