@@ -1,7 +1,6 @@
-FROM python:latest
+FROM iseletkov/fastapi:buster-3.9-0.63.0
 LABEL maintainer="iseletkov@gmail.com"
-# Установка модулей python
-RUN /usr/local/bin/pip install fastapi uvicorn pymorphy2 nltk pydantic sklearn
+
 # Загрузка дополнительных ресурсов для nltk
 RUN python -c "import nltk;nltk.download('punkt');nltk.download('stopwords')"
 # Порт, на котором работает сервер
